@@ -1,97 +1,24 @@
-# ONMI Backend — verification service
+# Место — verification-service
 
-## Содержание
+Сервис регистрации соискателей и работодателей с подтверждением email. Актуальный сценарий, ограничения и интеграции описаны в [registration-mvp.md](docs/registration-mvp.md).
 
-- [Структура проекта](#struktura)
-- [Пояснения по слоям](#poyasneniya)
-- [Последовательность сборки](#posledovatelnost)
+## База данных
 
+В схеме verification две прикладные таблицы:
 
-## <a id="struktura"></a>Структура проекта
-```
-src/
- ├── Controller/
- │     └── Api/
- │           ├── Registration/                    # Контроллеры регистрации
- │           │     └── RegistrationController.php
- │           │
- │           └── Dictionaries/                    # Контроллеры справочников
- │                 └── DictionariesController.php
- │
- ├── Domain/
- │     └── Dictionary/                            # DDD Domain слой для справочников
- │           └── DictionaryProviderInterface.php  # интерфейс провайдера справочника
- │
- ├── Application/
- │     └── Dictionaries/                          # Слой Application (сервисы, DTO, исключения)
- │           ├── DictionaryService.php            # сервис работы со справочниками
- │           ├── DTO/
- │           │     └── RoleDto.php                # DTO для элемента справочника roles
- │           ├── DictionaryException.php          # базовое исключение справочников
- │           └── DictionaryNotFoundException.php  # кастомное исключение 404
- │
- ├── Infrastructure/
- │     └── Dictionaries/                          # Провайдеры справочников (работа с БД)
- │           ├── RolesDictionary.php
- │           ├── CountriesDictionary.php
- │           └── RolesCountriesDictionary.php
- │
- └── EventSubscriber/                              # Глобальные подписчики событий
-       └── ApiExceptionSubscriber.php              # перехватчик всех ошибок API
-```
+- signup_requests — заявки, регистрационные поля, код/HMAC, временный хеш пароля, сроки и счётчики;
+- registration_outbox — сохраняемые задания отправки письма через Kafka и создания аккаунта через внутренний API auth-service.
 
-## <a id="poyasneniya"></a>Пояснения по слоям
+Семь таблиц старого company/SMS-модуля удаляются миграцией Version20261008120000. Исторические миграции сохранены для обновления ранее развёрнутых баз. Чистая установка завершает весь набор миграций и получает тот же состав таблиц. Обратная миграция очистки запрещена; для восстановления старых данных используется резервная копия.
 
-### Domain
-- Не содержит зависимостей от Symfony или БД.
+## Код и API
 
-### Application
-- Сервисы (`DictionaryService`) управляют справочниками и используют провайдеры.
-- DTO (`RoleDto`) описывает структуры данных для API.
-- Исключения (`DictionaryNotFoundException`) задают бизнес-ошибки и коды для API.
+Controller/EmailRegistrationController принимает /quick-signup, /check-code-email, /resend-code-email, /cancel, /status. Registration/Email/RegistrationService управляет состояниями и ограничениями; RegistrationTransport отправляет события и создаёт аккаунт; app:registration:dispatch обрабатывает очередь. Старые company/SMS-контроллеры, обработчики, модели, репозитории и их тесты удалены.
 
-### Infrastructure
-- Конкретная реализация провайдеров (`RolesDictionary`), которые извлекают данные из БД.
-- Реализует интерфейсы Domain.
+## Запуск и проверки
 
-### Controller
-- Обрабатывает HTTP-запросы и формирует ответы в формате API.
-- Контроллеры регистрационных операций (`RegistrationController`) отделены от контроллеров справочников (`DictionariesController`).
+Все команды запуска находятся в ONMI_infra: make registration-up (также make web-up), make registration-test. Сайт: http://localhost:8080; почта: http://localhost:8025.
 
-### EventSubscriber
-- Перехватывает все исключения и возвращает стандартизированный JSON с кодами ошибок и timestamp.
-- Работает для кастомных исключений (404, 500) и технических ошибок (PDO, DBAL).
+В контейнере verification_service_php: php bin/console doctrine:migrations:migrate --no-interaction; php tests/schema-cleanup-contract.php проверяет чистую установку и обновление в временных базах. Сквозная проверка из корня: python3 services/web-service/tests/registration-e2e.py. Она создаёт тестовые аккаунты example.invalid.
 
-
-## <a id="posledovatelnost"></a>Последовательность сборки
-```bash
-# Клонируем основной репозиторий в директорию /services/verification-service/app
-git clone -b main https://git.tknovosib.ru/omni/mp-backend.git .
-```
-```bash
-# После клонирования репозитория собираем оркестрацию согласно командам из ONMI-infra
-make up  make migrate  make bootstrap   make rebuild-db
-```
-```bash
-# как только все контейнеры собраны запускаем миграцию базы данных внутри контейнера с проектом
-php bin/console doctrine:migrations:migrate   
-```
-```bash
-# Подключение к DB через любой консольный клиент поддерживающий Postgresql
-host: localhost
-port: $POSTGRES_USER
-username: $POSTGRES_USER   
-password: $POSTGRES_PASSWORD
-```
-```bash
-# роутинг идет по префиксам в URL - префикс данного проекта
-/api/registration/
-```
-
-## <a id="posledovatelnost"></a>Первый стабильный релиз на кубере verification
-```bash
-docker push cr.selcloud.ru/dev/verification-php:12.0.1
-docker push cr.selcloud.ru/dev/verification-nginx:2.7
-```
-
-12.0.1
+Резервная копия перед очисткой: ONMI_infra/storage/backups/registration-before-cleanup-20261008.sql.

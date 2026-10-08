@@ -7,6 +7,8 @@ namespace App\Infrastructure\Dictionary;
 use App\Api\Dictionaries\DTO\ApiResponseDto;
 use App\Api\Dictionaries\DTO\ApiResponseDtoInterface;
 use Psr\Log\LoggerInterface;
+use App\Shared\Exception\IntegrationException;
+use App\Shared\Exception\ErrorCode;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -110,7 +112,7 @@ final class HttpDictionaryProvider
     {
         // 1. cache hit
         if (array_key_exists($name, $this->cacheSettings)) {
-            return $this->cacheSettings[$name];
+            return (int)$this->cacheSettings[$name];
         }
 
         // 2. HTTP request
@@ -194,7 +196,7 @@ final class HttpDictionaryProvider
             );
         }
 
-        return $this->cacheSettings[$name];
+        return (int)$this->cacheSettings[$name];
     }
 
     private function toApiResponseDto(array $data): ApiResponseDtoInterface

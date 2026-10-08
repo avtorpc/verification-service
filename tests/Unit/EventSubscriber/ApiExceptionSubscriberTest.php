@@ -2,7 +2,7 @@
 
 namespace App\Tests\Unit\EventSubscriber;
 
-use App\Application\Dictionaries\DictionaryNotFoundException;
+use App\Shared\Exception\DictionaryNotFoundException;
 use App\EventSubscriber\ApiExceptionSubscriber;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;

@@ -63,13 +63,6 @@ class AppSettingsService
         return $this->dictionary->getValueByKey(self::EMAIL_COOLDOWN, 60);
     }
 
-    /**
-     * Минимальный интервал между регистрациями с одним phone (в секундах). анти-спам / защита
-     */
-    public function getSmsCooldown(): int
-    {
-        return $this->dictionary->getValueByKey(self::EMAIL_COOLDOWN, 60);
-    }
 
     /**
      * Временное окно (в секундах) для подсчёта регистраций с одного IP.
@@ -84,7 +77,7 @@ class AppSettingsService
      */
     public function getIpMaxAttempts(): int
     {
-        return $this->dictionary->getValueByKey(self::IP_MAX_ATTEMPTS, 10);
+        return $this->dictionary->getValueByKey(self::IP_MAX_ATTEMPTS, 5);
     }
 
     /**
@@ -96,12 +89,4 @@ class AppSettingsService
         return $this->dictionary->getValueByKey(self::SIGNUP_TTL, 600);
     }
 
-    /**
-     * Время жизни активной (незавершённой) регистрации phone (в секундах).
-     * По истечении этого времени регистрация считается просроченной.
-     */
-    public function getSmsVerificationTtl(): int
-    {
-        return $this->dictionary->getValueByKey(self::SIGNUP_TTL, 600);
-    }
 }
