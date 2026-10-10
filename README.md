@@ -22,3 +22,9 @@ Controller/EmailRegistrationController принимает /quick-signup, /check-
 В контейнере verification_service_php: php bin/console doctrine:migrations:migrate --no-interaction; php tests/schema-cleanup-contract.php проверяет чистую установку и обновление в временных базах. Сквозная проверка из корня: python3 services/web-service/tests/registration-e2e.py. Она создаёт тестовые аккаунты example.invalid.
 
 Резервная копия перед очисткой: ONMI_infra/storage/backups/registration-before-cleanup-20261008.sql.
+
+## Зависимости без сетевой установки
+
+Полная папка vendor хранится в Git, включая автозагрузчик и лицензии. При запуске контейнера `php bin/check-vendor.php` локально проверяет пакеты по composer.lock и автозагрузку Symfony/Doctrine. Composer и Packagist при запуске не вызываются; неполный или несогласованный vendor останавливает запуск с сообщением об ошибке.
+
+Обновляйте зависимости на машине с доступом к репозиториям через `composer install --no-interaction --prefer-dist --no-scripts`, затем проверяйте `php bin/check-vendor.php`. Сохраняйте весь vendor вместе с composer.json и composer.lock. Для целевого изменения версий используйте composer update. Файлы .env, var и секреты остаются исключены из Git.
